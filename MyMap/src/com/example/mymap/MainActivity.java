@@ -1,4 +1,6 @@
 package com.example.mymap;
+import java.util.Map;
+
 import com.baidu.location.BDLocation;
 import com.baidu.location.BDLocationListener;
 import com.baidu.location.LocationClient;
@@ -14,9 +16,14 @@ import com.baidu.mapapi.map.MyLocationConfiguration;
 import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.map.MyLocationConfiguration.LocationMode;
 import com.baidu.mapapi.model.LatLng;
+import com.example.utils.ConfigParams;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -26,28 +33,43 @@ import android.widget.RadioGroup.OnCheckedChangeListener;
 public class MainActivity extends Activity {
 
 	// 定位相关
+	private String TAG="MyMap--->>";
 	LocationClient mLocClient;
 	public MyLocationListenner myListener = new MyLocationListenner();
 	private LocationMode mCurrentMode;
 	BitmapDescriptor mCurrentMarker;
 
 	MapView mMapView;
-	BaiduMap mBaiduMap;
+	BaiduMap mBaiduMap;       
 
 	// UI相关
 	OnCheckedChangeListener radioButtonListener;
 	Button requestLocButton;
+	Button btnMapType=null;
 	boolean isFirstLoc = true;// 是否首次定位
+	int typeNum=0;
 
+	private SharedPreferences mShareP=null;
+	private Editor mEditor=null;
+	private int mapState=0;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         SDKInitializer.initialize(getApplicationContext()); 
         setContentView(R.layout.activity_location);
+        
+        mShareP=this.getSharedPreferences(ConfigParams.SP_NAME, Context.MODE_PRIVATE);
+        mapState= mShareP.getInt(ConfigParams.MAP_STATE,BaiduMap.MAP_TYPE_NORMAL );
+        mEditor=mShareP.edit();
+        
+       
         requestLocButton = (Button) findViewById(R.id.button1);
+        btnMapType=(Button)findViewById(R.id.btnMapType);
         
         mCurrentMode = LocationMode.NORMAL;
         requestLocButton.setText("普通");
+     
+        
         OnClickListener btnClickListener = new OnClickListener() {
             public void onClick(View v) {
                 switch (mCurrentMode) {
@@ -101,6 +123,16 @@ public class MainActivity extends Activity {
 			}
 		};
 		group.setOnCheckedChangeListener(radioButtonListener);
+		
+		btnMapType.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				ChangeMapState();
+				
+			}
+		});
 
 		// 地图初始化
 		mMapView = (MapView) findViewById(R.id.bmapView);
@@ -116,6 +148,9 @@ public class MainActivity extends Activity {
 		option.setScanSpan(1000);
 		mLocClient.setLocOption(option);
 		mLocClient.start();
+		
+		InitMapState();   
+    
 	}
 
 	/**
@@ -171,4 +206,34 @@ public class MainActivity extends Activity {
 		super.onDestroy();
 	}
 
+	
+	public void InitMapState()
+	{
+	    if(BaiduMap.MAP_TYPE_NORMAL==mShareP.getInt(ConfigParams.MAP_STATE,BaiduMap.MAP_TYPE_NORMAL ))
+			{
+				mBaiduMap.setMapType(BaiduMap.MAP_TYPE_NORMAL);   
+
+			}else
+			{
+				mBaiduMap.setMapType(BaiduMap.MAP_TYPE_SATELLITE); 
+			}
+	        
+	}
+	
+	public void ChangeMapState()
+	{
+		if(BaiduMap.MAP_TYPE_NORMAL==mShareP.getInt(ConfigParams.MAP_STATE,BaiduMap.MAP_TYPE_NORMAL ))
+		{
+			mBaiduMap.setMapType(BaiduMap.MAP_TYPE_SATELLITE); 
+			mEditor.putInt(ConfigParams.MAP_STATE, BaiduMap.MAP_TYPE_SATELLITE);
+			mEditor.commit(); 
+
+		}else
+		{
+			mBaiduMap.setMapType(BaiduMap.MAP_TYPE_NORMAL);
+			mEditor.putInt(ConfigParams.MAP_STATE, BaiduMap.MAP_TYPE_NORMAL);
+			mEditor.commit();
+		}
+		
+	}
 }
